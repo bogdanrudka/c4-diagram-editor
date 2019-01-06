@@ -2,7 +2,7 @@
 const jsyaml = require("js-yaml")
 const vis = require("vis")
 
-var yaml_config = `
+var defaultC4Context = `
 context:
   software-system:
     name: Software System
@@ -89,6 +89,7 @@ function createConnections(compId, component) {
 }
 
 const levels = ["containers", "components", "classes"]
+
 function unnroll(data, component) {
 
     //Component level
@@ -118,17 +119,14 @@ function loadConfig(yaml_config) {
     return data
 }
 
-(function main() {
-    var data = loadConfig()
-    console.log(data)
-})()
+// (function main() {
+//     var data = loadConfig()
+//     console.log(data)
+// })()
 
 
 var options = {
 
-    font: {
-        size: 100,
-    },
     physics: {
         hierarchicalRepulsion: {
             nodeDistance: 1000
@@ -146,28 +144,39 @@ var options = {
 };
 
 const monaco = require('@timkendrick/monaco-editor');
-
+const storagePropertyName = "c4-yaml-config";
 function createEditor() {
     var editor = monaco.editor.create(document.getElementById('editor'), {
-        value: yaml_config,
+        value: loadC4Context(),
         language: 'yaml',
         minimap: {
             enabled: false
         }
     });
     editor.onDidChangeModelContent(function (e) {
-        var data = loadConfig(editor.getValue());
+        var editorContent = editor.getValue();
+        var data = loadConfig(editorContent);
+        window.localStorage.setItem(storagePropertyName, editorContent);
+        console.log("Put editor values into storage.")
         network.setData(data);
         network.redraw();
     });
 }
 
+function loadC4Context() {
+    var c4Context = window.localStorage.getItem(storagePropertyName)
+    //load yaml editor context from browser storage, in case storage is empty load default
+    if (c4Context == null) {
+        console.log("Storage is empty, load default context.")
+        c4Context = defaultC4Context;
+    }
+    return c4Context;
+}
 
 // Called when the Visualization API is loaded.
 function draw() {
     var container = document.getElementById('mynetwork');
-
-    network = new vis.Network(container, loadConfig(yaml_config), options);
+    network = new vis.Network(container, loadConfig(loadC4Context()), options);
 
     var navbar = document.getElementById("navbar");
     var selectList = document.createElement("select");
