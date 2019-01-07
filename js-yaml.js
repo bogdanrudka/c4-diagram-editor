@@ -119,12 +119,6 @@ function loadConfig(yaml_config) {
     return data
 }
 
-// (function main() {
-//     var data = loadConfig()
-//     console.log(data)
-// })()
-
-
 var options = {
 
     physics: {
@@ -145,6 +139,7 @@ var options = {
 
 const monaco = require('@timkendrick/monaco-editor');
 const storagePropertyName = "c4-yaml-config";
+
 function createEditor() {
     var editor = monaco.editor.create(document.getElementById('editor'), {
         value: loadC4Context(),
@@ -153,14 +148,7 @@ function createEditor() {
             enabled: false
         }
     });
-    editor.onDidChangeModelContent(function (e) {
-        var editorContent = editor.getValue();
-        var data = loadConfig(editorContent);
-        window.localStorage.setItem(storagePropertyName, editorContent);
-        console.log("Put editor values into storage.")
-        network.setData(data);
-        network.redraw();
-    });
+    return editor;
 }
 
 function loadC4Context() {
@@ -173,18 +161,37 @@ function loadC4Context() {
     return c4Context;
 }
 
-// Called when the Visualization API is loaded.
-function draw() {
+function createNetwork() {
     var container = document.getElementById('mynetwork');
-    network = new vis.Network(container, loadConfig(loadC4Context()), options);
+    var network = new vis.Network(container, loadConfig(loadC4Context()), options);
+    return network;
+}
 
+function bindEditorActions(network, editor) {
+    //synchronize code editor with network
+    editor.onDidChangeModelContent(function (e) {
+        var editorContent = editor.getValue();
+        var data = loadConfig(editorContent);
+        window.localStorage.setItem(storagePropertyName, editorContent);
+        console.log("Put editor values into storage.")
+        network.setData(data);
+        network.redraw();
+    });
+}
+
+
+function bindNetworkActions(network, editor) {
+    //select code that corespond to the node
+    network.on("select", function (event) {
+        console.log("node selected" + event)
+    })
+}
+
+function createLevelsSelector() {
     var navbar = document.getElementById("navbar");
     var selectList = document.createElement("select");
     selectList.id = "mySelect";
     navbar.appendChild(selectList);
-
-    createEditor();
-
     //Create and append the options
     for (var level of levels) {
         var option = document.createElement("option");
@@ -192,6 +199,15 @@ function draw() {
         option.text = level;
         selectList.appendChild(option);
     }
+}
+
+// Called when the Visualization API is loaded.
+function draw() {
+    const codeEditor = createEditor();
+    const network = createNetwork();
+
+    bindEditorActions(network, codeEditor);
+    bindNetworkActions(network, codeEditor);
 }
 
 module.exports = { draw: draw }
